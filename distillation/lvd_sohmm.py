@@ -5,7 +5,7 @@ import numpy
 import faiss
 
 from tqdm import tqdm
-from ctrlg import HMM
+from ctrlg import SOHMM
 
 def init():
     arg_parser = argparse.ArgumentParser()
@@ -108,7 +108,7 @@ def write_params(alpha_flow, beta_flow, gamma_flow, pseudocount,
     beta = torch.log(beta_flow / torch.sum(beta_flow, dim=-1, keepdim=True))
     gamma = torch.log(gamma_flow / torch.sum(gamma_flow))
 
-    hmm_model = HMM(hidden_states, vocab_size, eos_token_id)
+    hmm_model = SOHMM(hidden_states, vocab_size, eos_token_id)
     hmm_model.update_params(alpha_exp, beta, gamma)
 
     hmm_model.save_pretrained(output_file)

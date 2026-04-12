@@ -40,21 +40,22 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
         self.vocab_size = vocab_size
         self.eos_token_id = eos_token_id
 
+        # alpha_exp: P(z_{t+1} | z_{t-1}, z_t) -> [H, H, H]
+        alpha_exp = torch.softmax(torch.randn(hidden_states, hidden_states, hidden_states), dim=2)
+        # beta: P(x_t | z_t) -> [H, V] (stored in log space)
+        beta = torch.log_softmax(torch.randn(hidden_states, vocab_size), dim=1)
+        # gamma: P(z_0, z_1) -> [H, H] (stored in log space)
+        gamma = torch.log_softmax(torch.randn(hidden_states, hidden_states), dim=(0, 1))
+
+        self.alpha_exp = nn.Parameter(alpha_exp, requires_grad=False)
+        self.beta = nn.Parameter(beta, requires_grad=False)
+        self.gamma = nn.Parameter(gamma, requires_grad=False)
+
 
     def update_params(self, alpha_exp, beta, gamma):
         self.alpha_exp.data = alpha_exp
         self.beta.data = beta
         self.gamma.data = gamma
-
-        # if no LVD init, then do below random init
-
-        # alpha_exp = torch.softmax(torch.randn(hidden_states, hidden_states, hidden_states), dim=2)
-        # beta = torch.log_softmax(torch.randn(hidden_states, vocab_size), dim=1)
-        # gamma = torch.log_softmax(torch.randn(hidden_states, hidden_states), dim=(0, 1))
-
-        # self.alpha_exp = nn.Parameter(alpha_exp, requires_grad=False)
-        # self.beta = nn.Parameter(beta, requires_grad=False)
-        # self.gamma = nn.Parameter(gamma, requires_grad=False)
 
 
     # bottom-up circuit pass

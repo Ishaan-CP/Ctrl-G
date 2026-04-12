@@ -17,7 +17,7 @@ def calc_alpha_flow_2nd_order(pf, pp, cp):
     cp: [batch_size, hidden_states, hidden_states] -> (b, j, k)
     """
 
-    ll = torch.amax(cp, dim=-1)
+    ll = cp.amax(dim=-1)
 
     pp_exp = torch.exp(pp - ll.unsqueeze(1))
 
@@ -45,7 +45,7 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
         # beta: P(x_t | z_t) -> [H, V] (stored in log space)
         beta = torch.log_softmax(torch.randn(hidden_states, vocab_size), dim=1)
         # gamma: P(z_0, z_1) -> [H, H] (stored in log space)
-        gamma = torch.log_softmax(torch.randn(hidden_states, hidden_states), dim=(0, 1))
+        gamma = torch.log_softmax(torch.randn(hidden_states, hidden_states).flatten(), dim=0).view(hidden_states, hidden_states)
 
         self.alpha_exp = nn.Parameter(alpha_exp, requires_grad=False)
         self.beta = nn.Parameter(beta, requires_grad=False)
@@ -62,7 +62,7 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
     def forward(self, input_ids):
         device = self.alpha_exp.device
         alpha_exp, beta = self.alpha_exp, self.beta
-        gamma_exp = torch.softmax(self.gamma, dim=(0, 1)) # softmax over both dimensions
+        gamma_exp = torch.softmax(self.gamma.flatten(), dim=0).view(self.gamma.shape) # softmax over both dimensions
         hidden_states = self.hidden_states
         batch_size, seq_len = input_ids.shape
 
@@ -77,7 +77,7 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
 
         for t in range(seq_len-1, -1, -1):
             if t != seq_len - 1:
-                y_max = torch.amax(y, dim=(0, 1), keepdim=True)
+                y_max = y.amax(dim=0, keepdim=True).amax(dim=1, keepdim=True)
                 y = torch.exp(y - y_max)
                 y = torch.einsum('ijk, jkb -> ijb', alpha_exp, y)
                 y = torch.log(y) + y_max
@@ -85,7 +85,7 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
             y += input_probs[t, :, :].unsqueeze(0) # broadcast emissions over the z_{t-1} dimension
             ys.append(y)
 
-        y_max = torch.amax(y, dim=(0, 1))
+        y_max = y.amax(dim=0).amax(dim=0)
         y = torch.exp(y - y_max.unsqueeze(0).unsqueeze(0))
 
         y = torch.einsum('ij, ijb -> b', gamma_exp, y)
@@ -100,7 +100,7 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
     def backward(self, input_ids, probs, alpha_flow, beta_flow, gamma_flow):
         device = self.alpha_exp.device
         alpha_exp, beta = self.alpha_exp, self.beta
-        gamma_exp = torch.softmax(self.gamma, dim=(0, 1))
+        gamma_exp = torch.softmax(self.gamma.flatten(), dim=0).view(self.gamma.shape)
         hidden_states, vocab_size = self.hidden_states, self.vocab_size
         batch_size, seq_len = input_ids.shape
 
@@ -129,7 +129,7 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
 
             alpha_flow.add_(calc_alpha_flow_2nd_order(pf, pp_b, cp_b))
 
-            pp_max = torch.amax(pp_b, dim=(1, 2), keepdim=True)
+            pp_max = pp_b.amax(dim=1, keepdim=True).amax(dim=2, keepdim=True)
             pp_exp = torch.exp(pp_b - pp_max)
 
             ratio = pf / pp_exp

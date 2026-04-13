@@ -135,7 +135,7 @@ class SOHMM(nn.Module, PyTorchModelHubMixin):
             ratio = pf / pp_exp
             ratio[pp_exp == 0.0] = 0.0
 
-            pf_unscaled = torch.einsum('bjk, ijk -> bij', ratio, alpha_exp)
+            pf_unscaled = torch.einsum('bij, ijk -> bjk', ratio, alpha_exp)
             pf = pf_unscaled * torch.exp(cp_b - pp_max)
 
             flows.append(pf)

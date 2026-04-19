@@ -106,7 +106,7 @@ class ConstraintLogitsProcessor(LogitsProcessor):
 
         neginf = -1e30
         neginf_cuda = neginf * torch.ones(1, device=device)
-        alpha_exp, beta, gamma = hmm_model.alpha_exp, hmm_model.beta, hmm_model.gamma
+        alpha_exp, beta, gamma = hmm_model.alpha_exp, hmm_model.beta.to_dense(), hmm_model.gamma
         alpha_exp_t = torch.transpose(alpha_exp, 0, 1)
 
         if token_ranges is None:
@@ -243,7 +243,7 @@ class ConstraintLogitsProcessor(LogitsProcessor):
 
         VE_mask, EV_mask, T_mask = self.dfa_model.VE_mask, self.dfa_model.EV_mask, self.dfa_model.T_mask
         A_cache, B_cache, C_cache, D_cache = self.A_cache, self.B_cache, self.C_cache, self.D_cache
-        alpha_exp, beta, gamma = self.hmm_model.alpha_exp, self.hmm_model.beta, self.hmm_model.gamma
+        alpha_exp, beta, gamma = self.hmm_model.alpha_exp, self.hmm_model.beta.to_dense(), self.hmm_model.gamma
         hidden_states, vocab_size = self.hmm_model.hidden_states, self.hmm_model.vocab_size
 
         # update prefix hidden states

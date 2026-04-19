@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.distributed as dist
 
 from tqdm import tqdm
-from ctrlg import HMM
+from ctrlg.chmm1 import HMM
 
 
 def apply_dropout(input_ids, dropout, vocab_size, eos_token_id):

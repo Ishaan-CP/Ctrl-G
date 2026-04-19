@@ -39,7 +39,6 @@ class HMM(nn.Module, PyTorchModelHubMixin):
                 count+=1
         beta= torch.tensor(beta).T
         beta= torch.sparse_coo_tensor(beta, torch.ones(beta.shape[1]), [hidden_states, vocab_size])
-        beta= beta.to_dense()
 
         gamma = torch.log_softmax(torch.randn(hidden_states), dim=0)
 

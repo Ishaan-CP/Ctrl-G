@@ -39,7 +39,7 @@ class HMM(nn.Module, PyTorchModelHubMixin):
                 count+=1
         beta= torch.tensor(beta).T
         beta= torch.sparse_coo_tensor(beta, torch.ones(beta.shape[1]), [hidden_states, vocab_size])
-        beta= torch.sparse.log_softmax(beta)
+        beta= torch.sparse.log_softmax(beta, dim=1)
 
         gamma = torch.log_softmax(torch.randn(hidden_states), dim=0)
 
@@ -53,6 +53,13 @@ class HMM(nn.Module, PyTorchModelHubMixin):
 
         indices = self.beta.coalesce().indices()
         self.vocab_of= indices[1][torch.argsort(indices[0])]
+
+        clone_ranges = []
+        count = 0
+        for i in range(vocab_size):
+            clone_ranges.append((count, count + nclones_per_state[i]))
+            count += nclones_per_state[i]
+        self.clone_ranges = clone_ranges
 
 
     def update_params(self, alpha_exp, gamma):

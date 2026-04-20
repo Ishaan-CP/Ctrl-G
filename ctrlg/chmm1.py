@@ -51,6 +51,9 @@ class HMM(nn.Module, PyTorchModelHubMixin):
         self.vocab_size = vocab_size
         self.eos_token_id = eos_token_id
 
+        indices = self.beta.coalesce().indices()
+        self.vocab_of= indices[1][torch.argsort(indices[0])]
+
 
     def update_params(self, alpha_exp, gamma):
         self.alpha_exp.data = alpha_exp
@@ -65,9 +68,8 @@ class HMM(nn.Module, PyTorchModelHubMixin):
         hidden_states, vocab_size, eos_token_id = self.hidden_states, self.vocab_size, self.eos_token_id
         batch_size, seq_len = input_ids.shape
 
-        vocab_of = self.beta.to_dense().argmax(dim=1)  # shape: (hidden_states,)
         input_ids_ = torch.permute(input_ids, (1, 0)).contiguous()  # seq_len * batch_size
-        input_probs = (input_ids_[:, None, :] == vocab_of[None, :, None]).float()  # seq_len * hidden_states * batch_size
+        input_probs = (input_ids_[:, None, :] == self.vocab_of[None, :, None]).float()  # seq_len * hidden_states * batch_size
         input_probs *= (input_ids_ != -1)[:, None, :].expand(-1, hidden_states, -1)  # 0.0 for MISSING token
 
         # input_ids_ = torch.permute(input_ids, (1, 0)).contiguous()
@@ -106,9 +108,8 @@ class HMM(nn.Module, PyTorchModelHubMixin):
         batch_size, seq_len = input_ids.shape
 
 
-        vocab_of = self.beta.argmax(dim=1)  # shape: (hidden_states,)
         input_ids_ = torch.permute(input_ids, (1, 0)).contiguous()  # seq_len * batch_size
-        input_probs = (input_ids_[:, None, :] == vocab_of[None, :, None]).float()  # seq_len * hidden_states * batch_size
+        input_probs = (input_ids_[:, None, :] == self.vocab_of[None, :, None]).float()  # seq_len * hidden_states * batch_size
         input_probs *= (input_ids_ != -1)[:, None, :].expand(-1, hidden_states, -1)  # 0.0 for MISSING token
 
         # input_ids_ = torch.permute(input_ids, (1, 0)).contiguous() # seq_len * batch_size
